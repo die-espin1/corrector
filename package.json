@@ -1,0 +1,9 @@
+{
+  "name": "corrector",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistema oculto: 4 botones invisibles en las esquinas desbloquean un input diminuto que envía código a OpenAI para su corrección.",
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}
