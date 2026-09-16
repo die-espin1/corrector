@@ -1,6 +1,10 @@
 // Configuración: true exige repetir la secuencia secreta tras cada envío; false mantiene el input habilitado
 const RELOCK_AFTER_SUBMIT = false;
 
+// Debe coincidir con MAX_INPUT_CHARS en api/correct.js para evitar un viaje
+// de red inútil cuando el contenido pegado es demasiado grande.
+const MAX_INPUT_CHARS = 200000;
+
 // Orden secreto de pulsación: 1 (arriba-izq) -> 4 (abajo-der) -> 2 (arriba-der) -> 3 (abajo-izq)
 const SEQUENCE = [1, 4, 2, 3];
 let progress = 0;
@@ -66,8 +70,15 @@ input.addEventListener('keydown', async (e) => {
   e.preventDefault();
   if (isSubmitting) return;
 
-  const code = pendingCode || input.value;
-  if (!code.trim()) return;
+  const content = pendingCode || input.value;
+  if (!content.trim()) return;
+
+  if (content.length > MAX_INPUT_CHARS) {
+    console.error(
+      `Contenido demasiado grande (${content.length} caracteres, límite ${MAX_INPUT_CHARS}). No se envió.`
+    );
+    return;
+  }
 
   // Limpiar input y buffer de inmediato para no dejar rastro visible en pantalla
   input.value = '';
@@ -75,13 +86,13 @@ input.addEventListener('keydown', async (e) => {
   isSubmitting = true;
 
   lockInput();
-  console.log('Enviando código a la API para revisión...');
+  console.log('Enviando contenido a la API para revisión...');
 
   try {
     const response = await fetch('/api/correct', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ code: content }),
     });
 
     const data = await response.json();
@@ -89,9 +100,12 @@ input.addEventListener('keydown', async (e) => {
     if (!response.ok) {
       console.error('Error de la API:', data?.error || 'Código de respuesta ' + response.status);
     } else if (data?.correctedCode) {
+      if (data.warning) {
+        console.warn('Aviso de la API:', data.warning);
+      }
       try {
         await navigator.clipboard.writeText(data.correctedCode);
-        console.log('Código corregido copiado al portapapeles.');
+        console.log('Contenido corregido copiado al portapapeles.');
       } catch (clipErr) {
         console.error('Error al copiar al portapapeles:', clipErr?.message || 'Permiso denegado');
       }

@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/correct.js": {
+      "maxDuration": 60
+    }
+  }
+}
